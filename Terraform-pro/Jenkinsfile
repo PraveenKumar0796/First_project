@@ -6,22 +6,22 @@ pipeline {
         AWS_CREDENTIALS = credentials('AWS_Cred')
         AWS_REGION = "us-east-1" // Replace with your AWS region
     }
+
+    tools {
+        // Use the Terraform installation defined in Global Tool Configuration
+        terraform "Terraform"
+    }
     
     stages {
         stage('Checkout') {
             steps {
-                // Checkout your Terraform project from version control (e.g., Git)
                 git 'https://github.com/PraveenKumar0796/First_project.git'
             }
         }
         
         stage('Terraform Init') {
             steps {
-                // Install and configure Terraform
                 script {
-                    def tfHome = tool name: 'Terraform', type: 'org.jenkinsci.plugins.terraform.TerraformTool'
-                    env.PATH = "${tfHome}:${env.PATH}"
-                    
                     // Initialize Terraform
                     sh 'terraform init'
                 }
@@ -30,9 +30,8 @@ pipeline {
         
         stage('Terraform Plan') {
             steps {
-                // Generate and review Terraform plan
                 script {
-                    // Run terraform plan and save the output to a file
+                    // Generate Terraform plan
                     sh 'terraform plan -out=tfplan'
                 }
             }
@@ -40,9 +39,8 @@ pipeline {
         
         stage('Terraform Apply') {
             steps {
-                // Apply Terraform changes
                 script {
-                    // Apply Terraform changes using the plan file generated earlier
+                    // Apply Terraform changes
                     sh 'terraform apply -auto-approve tfplan'
                 }
             }
@@ -52,6 +50,7 @@ pipeline {
     post {
         always {
             // Clean up temporary files if needed
+            echo 'Always executing cleanup...'
         }
     }
 }

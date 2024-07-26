@@ -1,0 +1,50 @@
+import boto3
+
+def lambda_handler(event, context):
+    # Create EC2 client
+    ec2_client = boto3.client('ec2')
+    
+    # Get instance IDs from the event
+    instance_ids = event.get('InstanceIds', ['i-018570756aa23bc5a'])
+    
+    # Validate input
+    if not instance_ids:
+        return {
+            'statusCode': 400,
+            'body': 'Please provide InstanceIds in the event payload.'
+        }
+    
+    # Retrieve instance states
+    try:
+        instance_states = ec2_client.describe_instances(InstanceIds=instance_ids)
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': f'Failed to describe instances: {str(e)}'
+        }
+    
+    # Process each instance
+    response_messages = []
+    for reservation in instance_states['Reservations']:
+        for instance in reservation['Instances']:
+            instance_id = instance['InstanceId']
+            current_state = instance['State']['Name']
+            
+            # Determine action based on current state
+            if current_state == 'stopped':
+                response = ec2_client.start_instances(InstanceIds=[instance_id])
+                message = f"Started EC2 instance: {instance_id}"
+            elif current_state == 'running':
+                response = ec2_client.stop_instances(InstanceIds=[instance_id])
+                message = f"Stopped EC2 instance: {instance_id}"
+            else:
+                message = f"Ignored instance {instance_id} as it is in state: {current_state}"
+                continue
+            
+            response_messages.append(message)
+    
+    # Return response
+    return {
+        'statusCode': 200,
+        'body': '\n'.join(response_messages)
+    }
